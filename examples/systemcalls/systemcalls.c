@@ -23,9 +23,11 @@ bool do_system(const char *cmd)
 */  
     int ret = system(cmd);
     if(ret == -1){
+        perror("system");
         return false;
     }
-    if(WIFEXITED(ret) && WEXITSTATUS(ret) == 0){
+    if(WIFEXITED(ret)&&WEXITSTATUS(ret)==0){
+        
         return true;
     }
 
@@ -60,7 +62,7 @@ bool do_exec(int count, ...)
     command[count] = NULL;
     // this line is to avoid a compile warning before your implementation is complete
     // and may be removed
-    command[count] = command[count];
+    // command[count] = command[count];
 
 /*
  * TODO:
@@ -72,29 +74,39 @@ bool do_exec(int count, ...)
  *
 */
     pid_t pid = fork();
-    if (pid < 0){
+    if (pid == -1){
         perror("fork");
         va_end(args);
         return false;
     }
     if (pid == 0){
-        execv(command[0], command);
+        execv(command[0],command);
+
         perror("execv");
-        exit(-1);
+        _exit(-1);
     }
-    else {
+    else{
         int status;
         pid_t w;
-        do {
-            w = waitpid(pid, &status,0);
-        } while (w == -1 && errno == EINTR);
-        va_end(args);
+        do{ 
+            w = waitpid(pid,&status, 0 );
+        
+        }while(w == -1 && errno == EINTR);
+        if(w == -1){
+            perror("waitpid");
+            va_end(args);
+            return false;
 
-        if (WIFEXITED(status) && WEXITSTATUS(status) == 0){
-        return true;
+        }
+
+        if(WIFEXITED(status) && WEXITSTATUS(status) == 0){
+            va_end(args);
+            return true;
+        }
+        va_end(args);
+        return false;
     }
-    return false;
-    }
+    
     
 
     
@@ -118,7 +130,7 @@ bool do_exec_redirect(const char *outputfile, int count, ...)
     command[count] = NULL;
     // this line is to avoid a compile warning before your implementation is complete
     // and may be removed
-    command[count] = command[count];
+    // command[count] = command[count];
     pid_t pid = fork();
     if (pid == -1){
         perror("fork");
